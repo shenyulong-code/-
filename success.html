@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>教室预约系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.0/fullcalendar.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.0/fullcalendar.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #calendar { margin-top: 20px; }
+        .form-container {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>教室预约系统</h1>
+
+<div class="form-container">
+    <form id="bookingForm">
+        <label for="classroom">教室:</label>
+        <select id="classroom" name="classroom">
+            <option value="101">101</option>
+            <option value="102">102</option>
+            <option value="103">103</option>
+            <!-- 更多教室选项 -->
+        </select>
+
+        <label for="date">日期:</label>
+        <input type="text" id="date" name="date">
+
+        <label for="startTime">开始时间:</label>
+        <input type="time" id="startTime" name="startTime">
+
+        <label for="endTime">结束时间:</label>
+        <input type="time" id="endTime" name="endTime">
+
+        <button type="submit">预约</button>
+    </form>
+</div>
+
+<div id="calendar"></div>
+
+<script>
+    $(document).ready(function() {
+        var calendar = $('#calendar').fullCalendar({
+            editable: true,
+            events: [
+                // 假设这些是从服务器加载的预约数据
+                { id: '1', title: '预约1', start: '2024-01-01T09:00:00', end: '2024-01-01T11:00:00', classroom: '101' },
+                { id: '2', title: '预约2', start: '2024-01-02T10:00:00', end: '2024-01-02T12:00:00', classroom: '102' }
+            ],
+            eventClick: function(calEvent, jsEvent, view) {
+                if (confirm('确定要删除这个预约吗?')) {
+                    calendar.fullCalendar('removeEvents', calEvent.id);
+                    // 发送删除请求到服务器
+                    $.ajax({
+                        url: 'http://127.0.0.1:8888/deleteBooking',
+                        type: 'POST',
+                        data: { id: calEvent.id },
+                        success: function(response) {
+                            alert('预约已删除');
+                        },
+                        error: function() {
+                            alert('删除失败');
+                        }
+                    });
+                }
+            }
+        });
+
+        $('#bookingForm').submit(function(event) {
+            event.preventDefault(); // 阻止表单默认提交行为
+            var classroom = $('#classroom').val();
+            var date = $('#date').val();
+            var startTime = $('#startTime').val();
+            var endTime = $('#endTime').val();
+            
+            // 发送添加预约请求到服务器
+            $.ajax({
+                url: 'http://127.0.0.1:8888/addBooking',
+                type: 'POST',
+                data: {
+                    
+                    classroom: classroom,
+                    date: date,
+                    startTime: startTime,
+                    endTime: endTime
+                },
+                success: function(response) {
+                    var newEvent = {
+                        id: response.id,
+                        title: '新预约',
+                        start: date + 'T' + startTime,
+                        end: date + 'T' + endTime,
+                        allDay: false,
+                        classroom: classroom
+                    };
+                    calendar.fullCalendar('renderEvent', newEvent, true);
+                    $('#bookingForm')[0].reset();
+                    alert('预约已添加');
+                },
+                error: function() {
+                    alert('预约失败');
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
